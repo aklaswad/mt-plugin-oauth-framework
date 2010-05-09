@@ -1,0 +1,71 @@
+=pod
+
+=head1 SYNOPSIS
+
+=head2 For MT User
+
+At first, MT Administrator, maybe who had installed a plugin which using this
+framework, should do register your MT instance as New Application to
+the OAuth Service Provider.
+
+=over 4
+
+=item * Go to System > Settings > OAuth Servers
+
+=item * click "regist this MT to SERVICEPROVIDER"
+
+=item * Enter information about your MT Install
+
+=item * save them, and find consumer key and consumer secret in the service provider site
+
+=item * then, Copy consumer key and consumer secret and paste them to MT setting screen
+
+=item * save
+
+=back
+
+OK, now your MT install can handshake with the service provider. after that, let's see
+the plugin's instruction.
+
+
+=head2 For Plugin writter
+
+## Add service provider information to config.yaml of your plugin.
+
+oauth_servers:
+    example_provider:
+        label: Example Provider
+        regist_url: http://dev.example.com/apps/new/
+        manage_url: http://dev.example.com/apps/
+        request_token_url: https://api.example.com/oauth/request_token
+        access_token_url: https://api.example.com/oauth/access_token
+        authorize_url: https://api.example.com/oauth/authorize
+
+## And you perl code..
+
+use MT::OAuth;
+
+sub post {
+    my ($app) = shift;
+    my (%forward) = @_;
+    ## get parameters at retry...
+    my $text = $forward{post}{text} || $app->param('text');
+    my $author = $app->user or die;
+    my $server = MT::OAuth->server('example_provider');
+    return $server->access(
+        author_id => $author->id,
+	       end_point => 'https://example.com/statuses/update.xml',
+        post => {
+            status => $text,
+        },
+        retry => 1,  ## request to MT to go back to this method after handshaking.
+        callback => sub {
+            ## when accessing to the resource is finished, this will be called.
+            return $app->return_to_dashboard;
+        },
+    );
+}
+
+## this is all.
+## if the author hasn't yet authorized, MT will automatically do handshake, and 
+## after handshaked, back to the method again.
