@@ -1,0 +1,47 @@
+<mt:include name="include/header.tmpl">
+<mt:loop name="servers">
+<mt:if name="__first__"><ul></mt:if>
+    <li>
+        <h3>[<mt:var name="id">] <mt:var name="label"></h3>
+
+            <mt:unless name="registered">
+                <a href="<mt:var name="regist_url">" target="_new">regist this MT to <mt:var name="label"></a>
+            <mt:else>
+                <a href="<mt:var name="manage_url">" target="_new">Manage API setting in <mt:var name="label"></a>
+            </mt:unless>
+            <form name="cfg_form" id="cfg_form" method="post" action="<mt:var name="script_url">">
+            <input type="hidden" name="__mode" value="save_oauth_consumer_setting" />
+            <input type="hidden" name="server" value="<mt:var name="id">" />
+            <input type="hidden" name="magic_token" value="<mt:var name="magic_token">" />
+             
+            <mtapp:setting
+                id="key"
+                required="1"
+                label="<__trans phrase="Consumer key">"
+                content_class="field-content-input"
+                hint="<__trans phrase="Name your blog. The name can be changed at any time.">"
+                >
+                <input type="text" name="key" id="key" class="full-width mt-edit-field" value="<mt:var name="consumer_key" escape="html">" size="30" />
+            </mtapp:setting>
+            <mtapp:setting
+                id="secret"
+                required="1"
+                label="<__trans phrase="Consumer secret">"
+                content_class="field-content-input"
+                hint="<__trans phrase="Name your blog. The name can be changed at any time.">"
+                >
+                <input type="text" name="secret" id="secret" class="full-width mt-edit-field" value="<mt:var name="consumer_secret" escape="html">" size="30" />
+            </mtapp:setting>
+
+
+            <button
+                type="submit"
+                accesskey="s"
+                title="<__trans phrase="Save changes to these settings (s)">"
+                class="save action primary-button"
+                ><__trans phrase="Save Changes"></button>
+        </form>
+    </li>
+<mt:if name="__last__"></ul></mt:if>
+</mt:loop>
+<mt:include name="include/footer.tmpl">

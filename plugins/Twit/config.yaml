@@ -1,0 +1,13 @@
+applications:
+    cms:
+        widgets:
+            post_twitter:
+                label: Post to twitter
+                template: post.tmpl
+                set: main
+                singular: 1
+                handler: $Twit::Twit::widget
+                view: user
+        methods:
+            post_to_twitter: $Twit::Twit::post
+

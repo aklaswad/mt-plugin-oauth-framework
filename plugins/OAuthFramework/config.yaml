@@ -1,0 +1,26 @@
+schema_version: 0.1
+object_types:
+    oauth_token: MT::OAuth::Token
+applications:
+    cms:
+        menus:
+            settings:oauthserver:
+                label: OAuth Servers
+                mode: list_oauth_servers
+                view: system
+        methods:
+            list_oauth_servers: $OAuthFramework::MT::CMS::OAuth::list_oauth_servers
+            save_oauth_consumer_setting: $OAuthFramework::MT::CMS::OAuth::save_oauth_consumer_setting
+            list_oauth_clients: $OAuthFramework::MT::CMS::OAuth::list_oauth_clients
+            get_temporary_credentials: $OAuthFramework::MT::CMS::OAuth::get_temporary_credentials
+            oauth_verified: $OAuthFramework::MT::CMS::OAuth::oauth_verified
+
+oauth_servers:
+    twitter:
+        label: Twitter
+        regist_url: http://dev.twitter.com/apps/new/
+        manage_url: http://dev.twitter.com/apps/
+        request_token_url: https://api.twitter.com/oauth/request_token
+        access_token_url: https://api.twitter.com/oauth/access_token
+        authorize_url: https://api.twitter.com/oauth/authorize
+        author_app_manage_url: http://twitter.com/settings/connections
