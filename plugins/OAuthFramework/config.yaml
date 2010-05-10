@@ -12,5 +12,5 @@ applications:
             list_oauth_servers: $OAuthFramework::MT::CMS::OAuth::list_oauth_servers
             save_oauth_consumer_setting: $OAuthFramework::MT::CMS::OAuth::save_oauth_consumer_setting
             list_oauth_clients: $OAuthFramework::MT::CMS::OAuth::list_oauth_clients
-            get_temporary_credentials: $OAuthFramework::MT::CMS::OAuth::get_temporary_credentials
+            oauth_handshake: $OAuthFramework::MT::CMS::OAuth::oauth_handshake
             oauth_verified: $OAuthFramework::MT::CMS::OAuth::oauth_verified

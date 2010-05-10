@@ -9,6 +9,7 @@ $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0A;
 my $SERVERS;
 
 sub server {
+    ## FIXME: get server on proper way
     my $pkg = shift;
     $pkg->servers->{$_[0]};
 }
@@ -39,9 +40,9 @@ package MT::OAuth::Server;
 use base qw( Class::Accessor::Fast MT::ErrorHandler );
 
 __PACKAGE__->mk_accessors(qw(
-    id           label             regist_url
-    manage_url   consumer_key      consumer_secret
-    update       request_token_url access_token_url
+    id            label                 regist_url
+    manage_url    consumer_key          consumer_secret
+    update        request_token_url     access_token_url
     authorize_url author_app_manage_url
 ));
 
@@ -205,7 +206,7 @@ sub access {
             $sess->set(param => $retry);
             $sess->save or die $sess->errstr;
             return $app->forward(
-                'get_temporary_credentials',
+                'oauth_handshake',
                 server    => $self->id,
                 session   => $sess->id,
                 author_id => $author_id,
@@ -214,7 +215,7 @@ sub access {
         elsif ( my $redirect = $param{ redirect } ) {
             my $app = MT->app or die 'Need App to redirect after OAuth steps.';
             return $app->forward(
-                'get_temporary_credentials',
+                'oauth_handshake',
                 server    => $self->id,
                 redirect  => $redirect,
                 author_id => $author_id,

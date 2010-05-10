@@ -31,7 +31,7 @@ sub save_oauth_consumer_setting {
     $app->forward('list_oauth_servers');
 }
 
-sub get_temporary_credentials {
+sub oauth_handshake {
     my $app = shift;
     my ( %forward_param ) = @_;
     my $server_id = $forward_param{server} || $app->param('server');
