@@ -18,7 +18,7 @@ sub client {
     my $class = $reg->{class};
     if ( $class ) {
         eval "require $class"
-            or die "Failed to load OAuth client $client_id";
+            or die "Failed to load OAuth client $client_id: $@";
     }
     else {
         $class = "MT::OAuth::Client::$client_id";
@@ -133,7 +133,8 @@ sub get_temporary_credentials {
     my $http_req = HTTP::Request->new('POST', $self->request_token_url);
     $http_req->content($request->to_post_body);
     my $res = $ua->request($http_req);
-    die 'somethingwrong' unless $res->is_success;
+    die 'Failed to get OAuth Temporary Credentials: ' . $res->status_line
+        unless $res->is_success;
     my $response = Net::OAuth->response('request token')->from_post_body($res->content);
     return {
         token        => $response->token,
@@ -163,7 +164,8 @@ sub get_access_tokens {
     $http_req->content($request->to_post_body);
     my $res = $ua->request($http_req);
     my $response = Net::OAuth->response('access token')->from_post_body($res->content);
-    die 'somethingwrong' unless $res->is_success;
+    die 'Failed to get OAuth Tokens: ' . $res->status_line
+        unless $res->is_success;
     my $token = MT->model('oauth_token')->new;
     $token->set_values({
         provider => $self->id,
@@ -242,7 +244,7 @@ sub access {
     $http_req->content($request->to_post_body);
     my $res = $ua->request($http_req);
     ## TBD: if user revoked the handshake, retur code is 401. need recovery.
-    die 'somethingwrong'
+    die 'Failed to access OAuth Protected resource: ' . $res->status_line
         unless $res->is_success;
     return $param{callback} ? $param{callback}->($self, $res) : $res;
 }
