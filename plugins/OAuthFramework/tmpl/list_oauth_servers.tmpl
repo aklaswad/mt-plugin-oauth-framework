@@ -15,22 +15,22 @@
             <input type="hidden" name="magic_token" value="<mt:var name="magic_token">" />
              
             <mtapp:setting
-                id="key"
+                id="<mt:var name="id">-key"
                 required="1"
                 label="<__trans phrase="Consumer key">"
                 content_class="field-content-input"
                 hint="<__trans phrase="Name your blog. The name can be changed at any time.">"
                 >
-                <input type="text" name="key" id="key" class="full-width mt-edit-field" value="<mt:var name="consumer_key" escape="html">" size="30" />
+                <input type="text" name="<mt:var name="id">-key" id="<mt:var name="id">-key" class="full-width mt-edit-field" value="<mt:var name="consumer_key" escape="html">" size="30" />
             </mtapp:setting>
             <mtapp:setting
-                id="secret"
+                id="<mt:var name="id">-secret"
                 required="1"
                 label="<__trans phrase="Consumer secret">"
                 content_class="field-content-input"
                 hint="<__trans phrase="Name your blog. The name can be changed at any time.">"
                 >
-                <input type="text" name="secret" id="secret" class="full-width mt-edit-field" value="<mt:var name="consumer_secret" escape="html">" size="30" />
+                <input type="text" name="<mt:var name="id">-secret" id="<mt:var name="id">-secret" class="full-width mt-edit-field" value="<mt:var name="consumer_secret" escape="html">" size="30" />
             </mtapp:setting>
 
 

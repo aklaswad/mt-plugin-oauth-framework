@@ -23,7 +23,8 @@ sub list_oauth_servers {
 sub save_oauth_consumer_setting {
     my $app = shift;
     my $q = $app->param;
-    my ( $server_id, $key, $secret ) = map { $q->param($_) } qw(server key secret);
+    my ( $server_id ) = $q->param('server');
+    my ( $key, $secret ) = map { $q->param("$server_id-$_") } qw(key secret);
     my $server = MT::OAuth->server($server_id);
     $server->consumer_key($key);
     $server->consumer_secret($secret);
