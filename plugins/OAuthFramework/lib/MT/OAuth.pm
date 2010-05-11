@@ -131,8 +131,9 @@ sub get_temporary_credentials {
         request_url => $self->request_token_url,
     );
     my $http_req = HTTP::Request->new('POST', $self->request_token_url);
-    $http_req->content($request->to_post_body);
-    my $res = $ua->request($http_req);
+    $http_req->content( $request->to_post_body );
+    $http_req->content_type( 'application/x-www-form-urlencoded' );
+    my $res = $ua->request( $http_req );
     die 'Failed to get OAuth Temporary Credentials: ' . $res->status_line
         unless $res->is_success;
     my $response = Net::OAuth->response('request token')->from_post_body($res->content);
@@ -162,6 +163,8 @@ sub get_access_tokens {
     );
     my $http_req = HTTP::Request->new('POST', $self->access_token_url);
     $http_req->content($request->to_post_body);
+    $http_req->content_type( 'application/x-www-form-urlencoded' );
+
     my $res = $ua->request($http_req);
     my $response = Net::OAuth->response('access token')->from_post_body($res->content);
     die 'Failed to get OAuth Tokens: ' . $res->status_line
@@ -241,6 +244,7 @@ sub access {
         extra_params     => $param{post},
     );
     my $http_req = HTTP::Request->new('POST', $param{end_point});
+    $http_req->content_type( 'application/x-www-form-urlencoded' );
     $http_req->content($request->to_post_body);
     my $res = $ua->request($http_req);
     ## TBD: if user revoked the handshake, retur code is 401. need recovery.
