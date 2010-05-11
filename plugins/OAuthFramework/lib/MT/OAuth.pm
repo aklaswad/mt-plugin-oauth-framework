@@ -110,15 +110,17 @@ sub oauth_request {
     my $request = Net::OAuth->request($request_to)->new(
         consumer_key     => $self->consumer_key,
         consumer_secret  => $self->consumer_secret,
-        callback         => $self->callback_url,
-        request_method   => 'POST',
         signature_method => 'HMAC-SHA1',
         timestamp        => time(),
+        callback         => $self->callback_url,
         ## FIXME: what is the nonce?
         nonce            => substr(MT->app->make_magic_token, 0, 8),
         %param,
     );
     $request->sign;
+    die "COULDN'T VERIFY! Check OAuth parameters.\n"
+        unless $request->verify;
+
     $request;
 }
 
@@ -128,7 +130,8 @@ sub get_temporary_credentials {
     my $ua = MT->new_ua;
     my $request = $self->oauth_request(
         'request token',
-        request_url => $self->request_token_url,
+        request_method => 'POST',
+        request_url    => $self->request_token_url,
     );
     my $http_req = HTTP::Request->new('POST', $self->request_token_url);
     $http_req->content( $request->to_post_body );
@@ -155,11 +158,11 @@ sub get_access_tokens {
     my $ua = MT->new_ua;
     my $request = $self->oauth_request(
         "access token",
-        request_url      => $self->access_token_url,
-        callback         => $self->callback_url,
-        token            => $param{oauth_token},
-        verifier         => $param{oauth_verifier},
-        token_secret     => $param{request_token_secret},
+        request_method => 'POST',
+        request_url    => $self->access_token_url,
+        token          => $param{oauth_token},
+        verifier       => $param{oauth_verifier},
+        token_secret   => $param{request_token_secret},
     );
     my $http_req = HTTP::Request->new('POST', $self->access_token_url);
     $http_req->content($request->to_post_body);
@@ -235,21 +238,35 @@ sub access {
             return $self->error('Unauthorized');
         }
     }
-    my $ua = MT->new_ua;
+    my $ua     = MT->new_ua;
+    my $post   = $param{post};
+    my $method = $param{method}   ? $param{method}
+               : ( $param{post} ) ? 'POST'
+               :                    'GET'
+               ;
+    my %extra  = $post && ref $post ? ( extra_params => $post ) : ();
     my $request = $self->oauth_request(
         'protected resource',
+        request_method   => $method,
         request_url      => $param{end_point},
         token            => $token->token,
         token_secret     => $token->secret,
-        extra_params     => $param{post},
+        %extra,
     );
-    my $http_req = HTTP::Request->new('POST', $param{end_point});
-    $http_req->content_type( 'application/x-www-form-urlencoded' );
-    $http_req->content($request->to_post_body);
+    my $http_req = HTTP::Request->new( $method, $request->request_url );
+    $http_req->content_type( $param{content_type} ) if $param{content_type};
+    if ( %extra ) {
+        $http_req->content( $request->to_post_body );
+    }
+    else {
+        $http_req->header( 'Authorization', $request->to_authorization_header );
+        $http_req->content( $param{content} ) if $param{content};
+    }
+    $ua->max_redirect(0);
     my $res = $ua->request($http_req);
     ## TBD: if user revoked the handshake, retur code is 401. need recovery.
     die 'Failed to access OAuth Protected resource: ' . $res->status_line
-        unless $res->is_success;
+        if $res->is_error;
     return $param{callback} ? $param{callback}->($self, $res) : $res;
 }
 
