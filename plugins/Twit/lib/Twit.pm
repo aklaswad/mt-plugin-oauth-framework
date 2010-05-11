@@ -11,7 +11,6 @@ sub widget {
 sub post {
     my ($app) = shift;
     my (%forward) = @_;
-    use YAML; print STDERR YAML::Dump \%forward;
     my $twit = $forward{post}{status} || $app->param('twit');
     my $author = $app->user or die;
     my $client = MT::OAuth->client('twitter');
