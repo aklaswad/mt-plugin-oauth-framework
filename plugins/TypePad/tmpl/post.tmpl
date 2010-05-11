@@ -1,0 +1,7 @@
+<form name="post_to_typepad" id="post_to_typepad" method="post" action="<mt:var name="script_url">">
+    <input type="hidden" name="__mode" value="post_to_typepad" />
+    <input type="hidden" name="magic_token" value="<mt:var name="magic_token">" />
+    <input type="textarea" name="body" id="body" size="30" />
+    <button type="submit" />Post!</button>
+    <mt:if name="request.tpsaved"><a href="<mt:var name="request.tpsaved">">Saved New Entry on TypePad!</a></mt:if>
+</form>

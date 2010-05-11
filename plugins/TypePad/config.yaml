@@ -1,0 +1,22 @@
+applications:
+    cms:
+        widgets:
+            post_tp:
+                label: Post to TypePad
+                template: post.tmpl
+                set: main
+                singular: 1
+                handler: $TypePad::TypePad::widget
+                view: user
+        methods:
+            post_to_typepad: $TypePad::TypePad::post
+oauth_service_providers:
+    typepad:
+        label: TypePad
+        class: TypePad::Client
+        regist_url: http://www.typepad.com/account/access/developer
+        manage_url: http://www.typepad.com/account/access/developer
+        request_token_url: https://api.typepad.com/secure/services/oauth/request_token
+        access_token_url: https://www.typepad.com/secure/services/oauth/access_token
+        authorize_url: https://www.typepad.com/secure/services/api/6p0133ed6fe4a4970b/oauth-approve
+        author_app_manage_url: http://www.typepad.com/account/access/connections
