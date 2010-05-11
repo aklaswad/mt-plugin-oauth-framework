@@ -5,6 +5,10 @@ use MT::OAuth;
 
 sub list_oauth_providers {
     my $app = shift;
+    $app->can_do('manage_oauth_clients')
+        or return $app->return_to_dashboard(
+            permission => 1,
+        );
     my %param;
     my @providers = MT::OAuth->clients;
     @providers = map {{
@@ -22,6 +26,10 @@ sub list_oauth_providers {
 
 sub save_oauth_consumer_setting {
     my $app = shift;
+    $app->can_do('change_oauth_consumer_setting')
+        or return $app->return_to_dashboard(
+            permission => 1,
+        );
     my $q = $app->param;
     my ( $client_id ) = $q->param('client');
     my ( $key, $secret ) = map { $q->param("$client_id-$_") } qw(key secret);
@@ -30,6 +38,26 @@ sub save_oauth_consumer_setting {
     $client->consumer_secret($secret);
     $client->save_consumer_info or return $client->error( $client->errstr );
     $app->forward('list_oauth_providers');
+}
+
+sub list_oauth_tokens {
+    my $app = shift;
+    my $author = $app->user
+        or die;
+    my %param;
+    my @tokens = MT->model('oauth_token')->load({ author_id => $author->id });
+    my @providers;
+    for my $token ( @tokens ) {
+        use YAML; print STDERR YAML::Dump $token;
+        my $provider = MT::OAuth->client($token->provider) or die "OUVH";
+        push @providers, {
+            id         => $provider->id,
+            label      => $provider->label,
+            manage_url => $provider->author_app_manage_url,
+        };
+    }
+    $param{providers} = \@providers;
+    $app->load_tmpl( 'list_oauth_tokens.tmpl', \%param );
 }
 
 sub oauth_handshake {
@@ -78,6 +106,7 @@ sub oauth_verified {
         oauth_verifier       => $q->param('oauth_verifier'),
     ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
     $token->author_id($app->user->id);
+    $token->provider($client->id);
     $token->save or return $app->error( $token->errstr );
     if ( my $redirect = $cookie{redirect} ) {
         return $app->redirect($redirect);
