@@ -1,5 +1,15 @@
 =pod
 
+=head1 NAME
+
+MT-OAuth-Framework
+
+=head1 DESCRIPTION
+
+A Movable Type plugin helps other plugins using OAuth. This plugin can
+manage consumer credentials, do and manage handshake with service provider
+for each user, access to protected resources and it's fallback.
+
 =head1 SYNOPSIS
 
 =head2 For MT User
@@ -14,11 +24,11 @@ the OAuth Service Provider.
 
 =item * click "regist this MT to SERVICEPROVIDER"
 
-=item * Enter information about your MT Install
+=item * Enter information about your MT Install as application
 
-=item * save them, and find consumer key and consumer secret in the service provider site
+=item * save them, then look for consumer key and consumer secret in the service provider site
 
-=item * then, Copy consumer key and consumer secret and paste them to MT setting screen
+=item * Copy consumer key and consumer secret and paste them to MT setting screen
 
 =item * save
 
@@ -30,42 +40,42 @@ the plugin's instruction.
 
 =head2 For Plugin writter
 
-    ## Add service provider information to config.yaml of your plugin.
+ ## Add service provider information to config.yaml of your plugin.
 
-    oauth_servers:
-        example_provider:
-            label: Example Provider
-            regist_url: http://dev.example.com/apps/new/
-            manage_url: http://dev.example.com/apps/
-            request_token_url: https://api.example.com/oauth/request_token
-            access_token_url: https://api.example.com/oauth/access_token
-            authorize_url: https://api.example.com/oauth/authorize
+ oauth_service_providers:
+     example_provider:
+         label: Example Provider
+         regist_url: http://dev.example.com/apps/new/
+         manage_url: http://dev.example.com/apps/
+         request_token_url: https://api.example.com/oauth/request_token
+         access_token_url: https://api.example.com/oauth/access_token
+         authorize_url: https://api.example.com/oauth/authorize
 
-    ## And you perl code..
+ ## And you perl code..
 
-    use MT::OAuth;
+ use MT::OAuth;
 
-    sub post {
-        my ($app) = shift;
-        my (%forward) = @_;
-        ## get parameters at retry...
-        my $text = $forward{post}{text} || $app->param('text');
-        my $author = $app->user or die;
-        my $server = MT::OAuth->server('example_provider');
-        return $server->access(
-            author_id => $author->id,
-    	       end_point => 'https://example.com/statuses/update.xml',
-            post => {
-                status => $text,
-            },
-            retry => 1,  ## request to MT to go back to this method after handshaking.
-            callback => sub {
-                ## when accessing to the resource is finished, this will be called.
-                return $app->return_to_dashboard;
-            },
-        );
-    }
+ sub post {
+     my ($app) = shift;
+     my (%forward) = @_;
+     ## get parameters at retry...
+     my $text = $forward{post}{text} || $app->param('text');
+     my $author = $app->user or die;
+     my $client = MT::OAuth->client('example_provider');
+     return $server->access(
+         author_id => $author->id,
+ 	       end_point => 'https://example.com/statuses/update.xml',
+         post => {
+             status => $text,
+         },
+         retry => 1,  ## request to MT to go back to this method after handshaking.
+         callback => sub {
+             ## when accessing to the resource is finished, this will be called.
+             return $app->return_to_dashboard;
+         },
+     );
+ }
 
-    ## this is all.
-    ## if the author hasn't yet authorized, MT will automatically do handshake, and 
-    ## after handshaked, back to the method again.
+ ## this is all.
+ ## if the author hasn't yet authorized, MT will automatically do handshake, and 
+ ## after handshaked, back to the method again.
