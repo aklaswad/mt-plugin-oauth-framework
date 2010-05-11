@@ -5,35 +5,38 @@ use MT;
 use Net::OAuth;
 $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0A;
 
-{
-my $SERVERS;
-
 sub server {
-    ## FIXME: get server on proper way
     my $pkg = shift;
-    $pkg->servers->{$_[0]};
-}
-
-sub servers {
-    my $pkg = shift;
-    if ( defined $SERVERS ) {
-        return wantarray ? values %$SERVERS : $SERVERS;
-    }
-    $SERVERS = {};
+    my ( $server_id ) = @_;
 
     ## IDEA: add an updated datetime in registry, and, if
     ## multi entry about the same server has found, use newest one.
     ## this could help the old plugin from change somthing by server side.
+    my $reg = MT->registry('oauth_servers', $server_id)
+        or die "Failed to load OAuth server $server_id";
+
+    my $class = $reg->{class};
+    if ( $class ) {
+        eval "require $class"
+            or die "Failed to load OAuth server $server_id";
+    }
+    else {
+        $class = "MT::OAuth::Server::$server_id";
+        eval 'package ' . $class . '; @' . $class . '::ISA = qw( MT::OAuth::Server ); 1;'
+            or die "Failed to load OAuth server $server_id";
+    }
+    return $class->new( id => $server_id, %$reg );
+}
+
+sub servers {
+    my $pkg = shift;
     my $registry_servers = MT->registry('oauth_servers')
         or return;
+    my $servers = {};
     for my $id ( keys %$registry_servers ) {
-        $SERVERS->{$id} = MT::OAuth::Server->new(
-            id => $id,
-            %{ $registry_servers->{$id} },
-        );
+        $servers->{$id} = $pkg->server($id);
     }
-    return wantarray ? values %$SERVERS : $SERVERS;
-}
+    return wantarray ? values %$servers : $servers;
 }
 
 package MT::OAuth::Server;
@@ -46,33 +49,35 @@ __PACKAGE__->mk_accessors(qw(
     authorize_url author_app_manage_url
 ));
 
+sub new {
+    my $pkg = shift;
+    my ( %param ) = @_;
+    my $obj = bless \%param, $pkg;
+    $obj->init or die "Failed to init $pkg: " . $obj->errstr;
+    return $obj;
+}
+
 {
-my $plugindata;
 my $plugindata_terms = {
     plugin => 'core',
     key    => 'oauth_servers',
 };
 
-sub new {
-    my $pkg = shift;
-    my ( %param ) = @_;
-    my $id = $param{id};
+sub init {
+    my $self = shift;
     my $plugindata_class = MT->model('plugindata');
-    unless ( defined $plugindata ) {
-        $plugindata = $plugindata_class->load($plugindata_terms);
-        unless ( defined $plugindata ) {
-            $plugindata = $plugindata_class->new or die "aa";
-            $plugindata->set_values($plugindata_terms);
-            $plugindata->data({});
-        }
+    my $plugindata = $plugindata_class->load($plugindata_terms);
+    if ( !$plugindata ) {
+        $plugindata = $plugindata_class->new
+            or die "Failed to init Plugin Data: " . $plugindata_class->errstr;
+        $plugindata->set_values($plugindata_terms);
+        $plugindata->data({});
     }
-    if ( $plugindata ) {
-        if ( my $credentials = $plugindata->data->{$id} ) {
-            %param = ( %param, %$credentials );
-        }
-        $param{__plugindata} = $plugindata;
+    if ( my $credentials = $plugindata->data->{$self->id} ) {
+        $self->{$_} = $credentials->{$_} for keys %$credentials;
     }
-    return bless \%param, $pkg;
+    $self->{__plugindata} = $plugindata;
+    return $self;
 }
 }
 
