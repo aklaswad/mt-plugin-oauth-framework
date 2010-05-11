@@ -8,7 +8,7 @@ use MT::OAuth;
 __PACKAGE__->install_properties({
     column_defs => {
         id           => 'integer not null auto_increment',
-        server       => 'string(75)',
+        provider     => 'string(75)',
         author_id    => 'integer',
         token        => 'string(75)',
         secret       => 'string(75)',

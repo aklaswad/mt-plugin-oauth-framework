@@ -5,41 +5,41 @@ use MT;
 use Net::OAuth;
 $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0A;
 
-sub server {
+sub client {
     my $pkg = shift;
-    my ( $server_id ) = @_;
+    my ( $client_id ) = @_;
 
     ## IDEA: add an updated datetime in registry, and, if
-    ## multi entry about the same server has found, use newest one.
-    ## this could help the old plugin from change somthing by server side.
-    my $reg = MT->registry('oauth_servers', $server_id)
-        or die "Failed to load OAuth server $server_id";
+    ## multi entry about the same provider has found, use newest one.
+    ## this could help the old plugin from change somthing by provider side.
+    my $reg = MT->registry('oauth_service_providers', $client_id)
+        or die "Failed to load OAuth client $client_id";
 
     my $class = $reg->{class};
     if ( $class ) {
         eval "require $class"
-            or die "Failed to load OAuth server $server_id";
+            or die "Failed to load OAuth client $client_id";
     }
     else {
-        $class = "MT::OAuth::Server::$server_id";
-        eval 'package ' . $class . '; @' . $class . '::ISA = qw( MT::OAuth::Server ); 1;'
-            or die "Failed to load OAuth server $server_id";
+        $class = "MT::OAuth::Client::$client_id";
+        eval 'package ' . $class . '; @' . $class . '::ISA = qw( MT::OAuth::Client ); 1;'
+            or die "Failed to load OAuth client $client_id";
     }
-    return $class->new( id => $server_id, %$reg );
+    return $class->new( id => $client_id, %$reg );
 }
 
-sub servers {
+sub clients {
     my $pkg = shift;
-    my $registry_servers = MT->registry('oauth_servers')
+    my $registry_providers = MT->registry('oauth_service_providers')
         or return;
-    my $servers = {};
-    for my $id ( keys %$registry_servers ) {
-        $servers->{$id} = $pkg->server($id);
+    my $clients = {};
+    for my $id ( keys %$registry_providers ) {
+        $clients->{$id} = $pkg->client($id);
     }
-    return wantarray ? values %$servers : $servers;
+    return wantarray ? values %$clients : $clients;
 }
 
-package MT::OAuth::Server;
+package MT::OAuth::Client;
 use base qw( Class::Accessor::Fast MT::ErrorHandler );
 
 __PACKAGE__->mk_accessors(qw(
@@ -60,7 +60,7 @@ sub new {
 {
 my $plugindata_terms = {
     plugin => 'core',
-    key    => 'oauth_servers',
+    key    => 'oauth_clients',
 };
 
 sub init {
@@ -101,7 +101,7 @@ sub save_consumer_info {
 sub callback_url {
     my $self = shift;
     ## FIXME
-    MT->config->CGIPath . 'mt.cgi?__mode=oauth_verified&server=' . $self->id;
+    MT->config->CGIPath . 'mt.cgi?__mode=oauth_verified&client=' . $self->id;
 }
 
 sub oauth_request {
@@ -141,7 +141,7 @@ sub get_temporary_credentials {
         redirect_url =>
             $self->authorize_url
             . '?oauth_token=' . $response->token
-            . '&server='      . $self->id,
+            . '&client='      . $self->id,
     };
 }
 
@@ -166,9 +166,9 @@ sub get_access_tokens {
     die 'somethingwrong' unless $res->is_success;
     my $token = MT->model('oauth_token')->new;
     $token->set_values({
-        server => $self->id,
-        token  => $response->token,
-        secret => $response->token_secret,
+        provider => $self->id,
+        token    => $response->token,
+        secret   => $response->token_secret,
     });
     return $token;
 }
@@ -180,7 +180,7 @@ sub has_token {
     my $author_id = $param{author_id} || 0;
     my $token = MT->model('oauth_token')->load({
         author_id => $author_id,
-        server    => $self->id,
+        client    => $self->id,
     }) or return;
     $token;
 }
@@ -192,7 +192,7 @@ sub access {
     my $author_id = $param{author_id} || 0;
     my $token = MT->model('oauth_token')->load({
         author_id => $author_id,
-        server    => $self->id,
+        provider  => $self->id,
     });
     if ( !defined $token ) {
         if ( my $retry = $param{retry} ) {
@@ -212,7 +212,7 @@ sub access {
             $sess->save or die $sess->errstr;
             return $app->forward(
                 'oauth_handshake',
-                server    => $self->id,
+                client    => $self->id,
                 session   => $sess->id,
                 author_id => $author_id,
             );
@@ -221,7 +221,7 @@ sub access {
             my $app = MT->app or die 'Need App to redirect after OAuth steps.';
             return $app->forward(
                 'oauth_handshake',
-                server    => $self->id,
+                client    => $self->id,
                 redirect  => $redirect,
                 author_id => $author_id,
             );

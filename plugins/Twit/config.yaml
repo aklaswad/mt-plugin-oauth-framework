@@ -10,7 +10,7 @@ applications:
                 view: user
         methods:
             post_to_twitter: $Twit::Twit::post
-oauth_servers:
+oauth_service_providers:
     twitter:
         label: Twitter
         regist_url: http://dev.twitter.com/apps/new/

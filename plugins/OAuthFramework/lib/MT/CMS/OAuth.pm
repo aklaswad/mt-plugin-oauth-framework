@@ -3,11 +3,11 @@ use strict;
 use warnings;
 use MT::OAuth;
 
-sub list_oauth_servers {
+sub list_oauth_providers {
     my $app = shift;
     my %param;
-    my @servers = MT::OAuth->servers;
-    @servers = map {{
+    my @providers = MT::OAuth->clients;
+    @providers = map {{
         id              => $_->id,
         label           => $_->label,
         consumer_key    => $_->consumer_key,
@@ -15,31 +15,31 @@ sub list_oauth_servers {
         registered      => $_->registered,
         regist_url      => $_->regist_url,
         manage_url      => $_->manage_url,
-    }} @servers;
-    $param{servers} = \@servers;
-    $app->load_tmpl( 'list_oauth_servers.tmpl', \%param );
+    }} @providers;
+    $param{providers} = \@providers;
+    $app->load_tmpl( 'list_oauth_providers.tmpl', \%param );
 }
 
 sub save_oauth_consumer_setting {
     my $app = shift;
     my $q = $app->param;
-    my ( $server_id ) = $q->param('server');
-    my ( $key, $secret ) = map { $q->param("$server_id-$_") } qw(key secret);
-    my $server = MT::OAuth->server($server_id);
-    $server->consumer_key($key);
-    $server->consumer_secret($secret);
-    $server->save_consumer_info or return $server->error( $server->errstr );
-    $app->forward('list_oauth_servers');
+    my ( $client_id ) = $q->param('client');
+    my ( $key, $secret ) = map { $q->param("$client_id-$_") } qw(key secret);
+    my $client = MT::OAuth->client($client_id);
+    $client->consumer_key($key);
+    $client->consumer_secret($secret);
+    $client->save_consumer_info or return $client->error( $client->errstr );
+    $app->forward('list_oauth_providers');
 }
 
 sub oauth_handshake {
     my $app = shift;
     my ( %forward_param ) = @_;
-    my $server_id = $forward_param{server} || $app->param('server');
-    my $server = MT::OAuth->server($server_id)
-        or die "Unknown OAuth Server: $server_id";
-    my $res = $server->get_temporary_credentials;
-    return $app->error( 'failed to start OAuth session: ' . $server->errstr )
+    my $client_id = $forward_param{client} || $app->param('client');
+    my $client = MT::OAuth->client($client_id)
+        or die "Unknown OAuth Client: $client_id";
+    my $res = $client->get_temporary_credentials;
+    return $app->error( 'failed to start OAuth session: ' . $client->errstr )
         unless $res;
     my $author_id
         = defined $forward_param{author_id} ? $forward_param{author_id}
@@ -47,7 +47,7 @@ sub oauth_handshake {
         ;
     ## FIXME: do expire
     my $cookie = $app->bake_cookie (
-        -name => 'mt_oauth_' . $server_id . '_credential',
+        -name => 'mt_oauth_' . $client_id . '_credential',
         -value => {
             author_id    => $author_id,
             session      => $forward_param{session},
@@ -67,16 +67,16 @@ sub oauth_handshake {
 sub oauth_verified {
     my $app = shift;
     my $q = $app->param;
-    my $server_id = $q->param('server');
-    my %cookie = $q->cookie('mt_oauth_' . $server_id . '_credential');
-    my $server = MT::OAuth->server($server_id)
-        or return $app->error("Unknown server $server_id");
-    my $token = $server->get_access_tokens(
+    my $client_id = $q->param('client');
+    my %cookie = $q->cookie('mt_oauth_' . $client_id . '_credential');
+    my $client = MT::OAuth->client($client_id)
+        or return $app->error("Unknown client $client_id");
+    my $token = $client->get_access_tokens(
         request_token        => $cookie{token},
         request_token_secret => $cookie{token_secret},
         oauth_token          => $q->param('oauth_token'),
         oauth_verifier       => $q->param('oauth_verifier'),
-    ) or $app->error( 'Failed to get oAuth token: ' . $server->errstr );
+    ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
     $token->author_id($app->user->id);
     $token->save or return $app->error( $token->errstr );
     if ( my $redirect = $cookie{redirect} ) {

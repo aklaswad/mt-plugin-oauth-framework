@@ -14,8 +14,8 @@ sub post {
     use YAML; print STDERR YAML::Dump \%forward;
     my $twit = $forward{post}{status} || $app->param('twit');
     my $author = $app->user or die;
-    my $server = MT::OAuth->server('twitter');
-    return $server->access(
+    my $client = MT::OAuth->client('twitter');
+    return $client->access(
         author_id => $author->id,
 	       end_point => 'https://twitter.com/statuses/update.xml',
         post => {

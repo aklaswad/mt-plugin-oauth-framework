@@ -1,16 +1,15 @@
-schema_version: 0.1
+schema_version: 0.11
 object_types:
     oauth_token: MT::OAuth::Token
 applications:
     cms:
         menus:
             settings:oauthserver:
-                label: OAuth Servers
-                mode: list_oauth_servers
+                label: OAuth Service Providers
+                mode: list_oauth_providers
                 view: system
         methods:
-            list_oauth_servers: $OAuthFramework::MT::CMS::OAuth::list_oauth_servers
+            list_oauth_providers: $OAuthFramework::MT::CMS::OAuth::list_oauth_providers
             save_oauth_consumer_setting: $OAuthFramework::MT::CMS::OAuth::save_oauth_consumer_setting
-            list_oauth_clients: $OAuthFramework::MT::CMS::OAuth::list_oauth_clients
             oauth_handshake: $OAuthFramework::MT::CMS::OAuth::oauth_handshake
             oauth_verified: $OAuthFramework::MT::CMS::OAuth::oauth_verified
