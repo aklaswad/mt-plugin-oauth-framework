@@ -42,22 +42,43 @@ sub save_oauth_consumer_setting {
 
 sub list_oauth_tokens {
     my $app = shift;
+    my (%forward) = @_;
     my $author = $app->user
         or die;
     my %param;
     my @tokens = MT->model('oauth_token')->load({ author_id => $author->id });
     my @providers;
     for my $token ( @tokens ) {
-        use YAML; print STDERR YAML::Dump $token;
         my $provider = MT::OAuth->client($token->provider) or die "OUVH";
         push @providers, {
-            id         => $provider->id,
-            label      => $provider->label,
-            manage_url => $provider->author_app_manage_url,
+            id             => $token->id,
+            provider_id    => $provider->id,
+            provider_label => $provider->label,
+            manage_url     => $provider->author_app_manage_url,
         };
     }
     $param{providers} = \@providers;
+    if ( my $revoked_id = $forward{revoked} ) {
+        $param{revoked_provider_label} = MT::OAuth->client($revoked_id)->label;
+        $param{revoked} = 1;
+    }
     $app->load_tmpl( 'list_oauth_tokens.tmpl', \%param );
+}
+
+sub revoke_handshake {
+    my $app = shift;
+    my $q = $app->param;
+    my $id = $q->param('id');
+    my $token = MT->model('oauth_token')->load($id)
+        or return $app->error('Invalid request');
+    if ( $app->user->id != $token->author_id
+        && !$app->can_do('manage_all_handshakes') ) {
+        return $app->error('Permission denied');
+    }
+    $token->remove();
+    $app->forward(
+        'list_oauth_tokens',
+        remokedd => $id );
 }
 
 sub oauth_handshake {

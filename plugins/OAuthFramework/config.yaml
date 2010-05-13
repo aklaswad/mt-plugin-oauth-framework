@@ -18,5 +18,6 @@ applications:
             list_oauth_providers: $OAuthFramework::MT::CMS::OAuth::list_oauth_providers
             save_oauth_consumer_setting: $OAuthFramework::MT::CMS::OAuth::save_oauth_consumer_setting
             list_oauth_tokens: $OAuthFramework::MT::CMS::OAuth::list_oauth_tokens
+            revoke_handshake: $OAuthFramework::MT::CMS::OAuth::revoke_handshake
             oauth_handshake: $OAuthFramework::MT::CMS::OAuth::oauth_handshake
             oauth_verified: $OAuthFramework::MT::CMS::OAuth::oauth_verified

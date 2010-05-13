@@ -1,0 +1,24 @@
+<mt:setvarblock name="page_title"><__trans phrase="My Handshakes"></mt:setvarblock>
+<mt:include name="include/header.tmpl">
+<mt:if name="revoked">
+    <mtapp:statusmsg
+        id="revoked_provider_label"
+        class="info" can_close="1">
+        <__trans phrase="Revoked handshake with [_1]." params="<mt:var name="revoke_provider_lable">">
+    </mtapp:statusmsg>
+</mt:if>
+<mt:loop name="providers">
+<mt:if name="__first__"><ul></mt:if>
+    <li>
+        <h3><mt:var name="provider_label"></h3>
+            <a href="<mt:var name="manage_url">" target="_new">Manage API setting in <mt:var name="provider_label"></a>
+            <a href="<mt:var name="script_url">?__mode=revoke_handshake&id=<mt:var name="id">">revoke</a>
+    </li>
+<mt:if name="__last__"></ul></mt:if>
+</mt:loop>
+<mt:unless name="providers">
+    <mtapp:statusmsg id="zero-state" class="info zero-state">
+        <__trans phrase="No Handshakes could be found.">
+    </mtapp:statusmsg>
+</mt:unless>
+<mt:include name="include/footer.tmpl">
