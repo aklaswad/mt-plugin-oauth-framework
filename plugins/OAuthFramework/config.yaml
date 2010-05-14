@@ -5,11 +5,13 @@ applications:
     cms:
         menus:
             settings:oauthserver:
+                order: 110000
                 label: OAuth Service Providers
                 mode: list_oauth_providers
                 view: system
                 permit_action: manage_oauth_clients
             settings:listoauthtokens:
+                order: 10000
                 label: My OAuth Handshakes
                 mode: list_oauth_tokens
                 view: system
