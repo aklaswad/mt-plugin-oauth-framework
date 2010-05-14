@@ -10,16 +10,7 @@ sub list_oauth_providers {
             permission => 1,
         );
     my %param;
-    my @providers = MT::OAuth->clients;
-    @providers = map {{
-        id              => $_->id,
-        label           => $_->label,
-        consumer_key    => $_->consumer_key,
-        consumer_secret => $_->consumer_secret,
-        registered      => $_->registered,
-        regist_url      => $_->regist_url,
-        manage_url      => $_->manage_url,
-    }} @providers;
+    my @providers = provider_list();
     $param{providers} = \@providers;
     $app->load_tmpl( 'list_oauth_providers.tmpl', \%param );
 }
@@ -47,15 +38,10 @@ sub list_oauth_tokens {
         or die;
     my %param;
     my @tokens = MT->model('oauth_token')->load({ author_id => $author->id });
-    my @providers;
-    for my $token ( @tokens ) {
-        my $provider = MT::OAuth->client($token->provider) or die "OUVH";
-        push @providers, {
-            id             => $token->id,
-            provider_id    => $provider->id,
-            provider_label => $provider->label,
-            manage_url     => $provider->author_app_manage_url,
-        };
+    my @providers = grep { $_->{registered} } provider_list();
+    for my $provider ( @providers ) {
+        my ($token) = grep { $_->provider eq $provider->{id} } @tokens;
+        $provider->{token_id} = $token->id if $token;
     }
     $param{providers} = \@providers;
     if ( my $revoked_id = $forward{revoked} ) {
@@ -63,6 +49,19 @@ sub list_oauth_tokens {
         $param{revoked} = 1;
     }
     $app->load_tmpl( 'list_oauth_tokens.tmpl', \%param );
+}
+
+sub provider_list {
+    my @providers = MT::OAuth->clients;
+    map {{
+        id              => $_->id,
+        label           => $_->label,
+        consumer_key    => $_->consumer_key,
+        consumer_secret => $_->consumer_secret,
+        registered      => $_->registered,
+        regist_url      => $_->regist_url,
+        manage_url      => $_->manage_url,
+    }} @providers;
 }
 
 sub revoke_handshake {
@@ -84,23 +83,25 @@ sub revoke_handshake {
 sub oauth_handshake {
     my $app = shift;
     my ( %forward_param ) = @_;
-    my $client_id = $forward_param{client} || $app->param('client');
+    my $client_id = $forward_param{client}   || $app->param('client');
     my $client = MT::OAuth->client($client_id)
         or die "Unknown OAuth Client: $client_id";
     my $res = $client->get_temporary_credentials;
     return $app->error( 'failed to start OAuth session: ' . $client->errstr )
         unless $res;
+    my $redirect  = $forward_param{redirect} || $app->param('redirect');
     my $author_id
         = defined $forward_param{author_id} ? $forward_param{author_id}
+        : defined $app->param('author_id')  ? $app->param('author_id')
         :                                     $app->user->id
         ;
-    ## FIXME: do expire
+    ## FIXME: set cookie expire
     my $cookie = $app->bake_cookie (
         -name => 'mt_oauth_' . $client_id . '_credential',
         -value => {
             author_id    => $author_id,
             session      => $forward_param{session},
-            redirect     => $forward_param{redirect},
+            redirect     => $redirect,
             token        => $res->{token},
             token_secret => $res->{token_secret},
         },

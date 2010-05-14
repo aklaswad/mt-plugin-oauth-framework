@@ -10,9 +10,13 @@
 <mt:loop name="providers">
 <mt:if name="__first__"><ul></mt:if>
     <li>
-        <h3><mt:var name="provider_label"></h3>
-            <a href="<mt:var name="manage_url">" target="_new">Manage API setting in <mt:var name="provider_label"></a>
-            <a href="<mt:var name="script_url">?__mode=revoke_handshake&id=<mt:var name="id">">revoke</a>
+        <h3><mt:var name="label"></h3>
+        <a href="<mt:var name="manage_url">" target="_new">Manage API setting in <mt:var name="label"></a>
+        <mt:if name="token_id">
+            <a href="<mt:var name="script_url">?__mode=revoke_handshake&id=<mt:var name="token_id">">revoke</a>
+        <mt:else>
+            <a href="<mt:var name="script_url">?__mode=oauth_handshake&client=<mt:var name="id">&redirect=<mt:var name="script_url">?__mode=list_oauth_tokens">handshake</a>
+        </mt:if>
     </li>
 <mt:if name="__last__"></ul></mt:if>
 </mt:loop>

@@ -267,7 +267,7 @@ sub access {
     ## TBD: if user revoked the handshake, retur code is 401. need recovery.
     die 'Failed to access OAuth Protected resource: ' . $res->status_line
         if $res->is_error;
-    return $param{callback} ? $param{callback}->($self, $res) : $res;
+    return $param{callback} ? $param{callback}->($res) : $res;
 }
 
 1;
