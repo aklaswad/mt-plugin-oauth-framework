@@ -46,7 +46,7 @@ __PACKAGE__->mk_accessors(qw(
     id            label                 regist_url
     manage_url    consumer_key          consumer_secret
     update        request_token_url     access_token_url
-    authorize_url author_app_manage_url
+    authorize_url author_app_manage_url protocol_version
 ));
 
 sub new {
@@ -120,13 +120,14 @@ sub oauth_request {
     $request->sign;
     die "COULDN'T VERIFY! Check OAuth parameters.\n"
         unless $request->verify;
-
     $request;
 }
 
 sub get_temporary_credentials {
     my $self = shift;
     return unless $self->registered;
+    local $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0
+        if ( $self->protocol_version || '' ) eq '1_0';
     my $ua = MT->new_ua;
     my $request = $self->oauth_request(
         'request token',
@@ -139,6 +140,7 @@ sub get_temporary_credentials {
     my $res = $ua->request( $http_req );
     die 'Failed to get OAuth Temporary Credentials: ' . $res->status_line
         unless $res->is_success;
+
     my $response = Net::OAuth->response('request token')->from_post_body($res->content);
     return {
         token        => $response->token,
@@ -154,6 +156,8 @@ sub get_access_tokens {
     my $self = shift;
     my ( %param ) = @_;
     return unless $self->registered;
+    local $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0
+        if ( $self->protocol_version || '' ) eq '1_0';
 
     my $ua = MT->new_ua;
     my $request = $self->oauth_request(
@@ -197,6 +201,8 @@ sub access {
     my $self = shift;
     my ( %param ) = @_;
     return unless $self->registered;
+    local $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0
+        if ( $self->protocol_version || '' ) eq '1_0';
     my $author_id = $param{author_id} || 0;
     my $token = MT->model('oauth_token')->load({
         author_id => $author_id,

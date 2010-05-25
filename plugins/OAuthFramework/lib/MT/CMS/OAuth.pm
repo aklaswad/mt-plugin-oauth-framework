@@ -61,6 +61,7 @@ sub provider_list {
         registered      => $_->registered,
         regist_url      => $_->regist_url,
         manage_url      => $_->manage_url,
+        callback_url    => $_->callback_url,
     }} @providers;
 }
 
