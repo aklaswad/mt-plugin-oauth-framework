@@ -11,7 +11,7 @@
 <mt:if name="__first__"><ul></mt:if>
     <li>
         <h3><mt:var name="label"></h3>
-        <a href="<mt:var name="manage_url">" target="_new">Manage API setting in <mt:var name="label"></a>
+        <a href="<mt:var name="user_manage_url">" target="_new">Manage API setting in <mt:var name="label"></a>
         <mt:if name="token_id">
             <a href="<mt:var name="script_url">?__mode=revoke_handshake&id=<mt:var name="token_id">">revoke</a>
         <mt:else>
