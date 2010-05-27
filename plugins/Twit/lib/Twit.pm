@@ -16,7 +16,7 @@ sub post {
     my $client = MT::OAuth->client('twitter');
     return $client->access(
         author_id => $author->id,
-	       end_point => 'https://twitter.com/statuses/update.xml',
+	       end_point => 'https://api.twitter.com/1/statuses/update.xml',
         post => {
             status => $twit,
         },
