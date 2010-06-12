@@ -5,10 +5,18 @@ use MT::OAuth;
 
 sub list_oauth_providers {
     my $app = shift;
-    $app->can_do('manage_oauth_clients')
-        or return $app->return_to_dashboard(
-            permission => 1,
-        );
+    if ( MT->VERSION > 5 ) {
+        $app->can_do('manage_oauth_clients')
+            or return $app->return_to_dashboard(
+                permission => 1,
+            );
+    }
+    else {
+        $app->user->is_superuser
+            or return $app->return_to_dashboard(
+                permission => 1,
+            );
+    }
     my %param;
     my @providers = provider_list();
     $param{providers} = \@providers;
@@ -17,10 +25,18 @@ sub list_oauth_providers {
 
 sub save_oauth_consumer_setting {
     my $app = shift;
-    $app->can_do('change_oauth_consumer_setting')
-        or return $app->return_to_dashboard(
-            permission => 1,
-        );
+    if ( MT->VERSION > 5 ) {
+        $app->can_do('change_oauth_consumer_setting')
+            or return $app->return_to_dashboard(
+                permission => 1,
+            );
+    }
+    else {
+        $app->user->is_superuser
+            or return $app->return_to_dashboard(
+                permission => 1,
+            );
+    }
     my $q = $app->param;
     my ( $client_id ) = $q->param('client');
     my ( $key, $secret ) = map { $q->param("$client_id-$_") } qw(key secret);
@@ -72,9 +88,17 @@ sub revoke_handshake {
     my $id = $q->param('id');
     my $token = MT->model('oauth_token')->load($id)
         or return $app->error('Invalid request');
-    if ( $app->user->id != $token->author_id
-        && !$app->can_do('manage_all_handshakes') ) {
-        return $app->error('Permission denied');
+    if ( MT->VERSION > 5 ) {
+        if ( $app->user->id != $token->author_id
+            && !$app->can_do('manage_all_handshakes') ) {
+            return $app->error('Permission denied');
+        }
+    }
+    else {
+        if ( $app->user->id != $token->author_id
+                 && !$app->user->is_superuser ) {
+            return $app->error('Permission denied');
+        }
     }
     $token->remove();
     $app->forward(

@@ -4,6 +4,7 @@ object_types:
 applications:
     cms:
         menus:
+            # MT5
             settings:oauthserver:
                 order: 110000
                 label: OAuth Service Providers
@@ -11,6 +12,18 @@ applications:
                 view: system
                 permit_action: manage_oauth_clients
             settings:listoauthtokens:
+                order: 10000
+                label: My OAuth Handshakes
+                mode: list_oauth_tokens
+                view: system
+            # MT4
+            prefs:oauthserver:
+                order: 110000
+                label: OAuth Service Providers
+                mode: list_oauth_providers
+                view: system
+                condition: sub { MT->app->user->is_superuser }
+            prefs:listoauthtokens:
                 order: 10000
                 label: My OAuth Handshakes
                 mode: list_oauth_tokens
