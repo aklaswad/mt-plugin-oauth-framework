@@ -1,4 +1,4 @@
-package TypePad::Client;
+package MT::OAuth::Client::TypePad;
 use strict;
 use warnings;
 use base qw( MT::OAuth::Client );
