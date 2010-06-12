@@ -1,3 +1,6 @@
+name: OAuth Framework
+author: Akira Sawada
+version: 0.11
 schema_version: 0.11
 object_types:
     oauth_token: MT::OAuth::Token
