@@ -1,4 +1,4 @@
-package Twit;
+package DashboardTwit;
 use strict;
 use warnings;
 use MT;

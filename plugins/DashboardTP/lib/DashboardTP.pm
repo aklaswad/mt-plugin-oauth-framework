@@ -1,4 +1,4 @@
-package TypePad;
+package DashboardTP;
 use strict;
 use warnings;
 use MT;

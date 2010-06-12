@@ -6,7 +6,7 @@ applications:
                 template: post.tmpl
                 set: main
                 singular: 1
-                handler: $TypePad::TypePad::widget
+                handler: $DashboardTP::DashboardTP::widget
                 view: user
         methods:
-            post_to_typepad: $TypePad::TypePad::post
+            post_to_typepad: $DashboardTP::DashboardTP::post
