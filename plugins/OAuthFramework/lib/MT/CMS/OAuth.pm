@@ -69,6 +69,11 @@ sub list_oauth_tokens {
 
 sub provider_list {
     my @providers = MT::OAuth->clients;
+    my @tokens = MT->model('oauth_token')->load({ author_id => 0 });
+    for my $provider ( @providers ) {
+        my ($token) = grep { $_->provider eq $provider->{id} } @tokens;
+        $provider->{sys_token_id} = $token->id if $token;
+    }
     map {{
         id              => $_->id,
         label           => $_->label,
@@ -79,6 +84,7 @@ sub provider_list {
         manage_url      => $_->manage_url,
         user_manage_url => $_->author_app_manage_url,
         callback_url    => $_->callback_url,
+        sys_token_id    => $_->{sys_token_id},
     }} @providers;
 }
 
@@ -102,7 +108,7 @@ sub revoke_handshake {
     }
     $token->remove();
     $app->forward(
-        'list_oauth_tokens',
+        $q->param('forward') || 'list_oauth_tokens',
         remokedd => $id );
 }
 
@@ -153,7 +159,7 @@ sub oauth_verified {
         oauth_token          => $q->param('oauth_token'),
         oauth_verifier       => $q->param('oauth_verifier'),
     ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
-    $token->author_id($app->user->id);
+    $token->author_id(defined $cookie{author_id} ? $cookie{author_id} : $app->user->id);
     $token->provider($client->id);
     $token->save or return $app->error( $token->errstr );
     if ( my $redirect = $cookie{redirect} ) {
