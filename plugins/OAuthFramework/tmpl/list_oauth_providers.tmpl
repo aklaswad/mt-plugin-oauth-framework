@@ -3,22 +3,22 @@
 <mt:loop name="providers">
 <mt:if name="__first__"><ul></mt:if>
     <li>
-        <h3>[<mt:var name="id">] <mt:var name="label"></h3>
+        <h3><mt:var name="label"></h3>
             <p>
             <mt:unless name="registered">
                 <a href="<mt:var name="regist_url">" target="_new">regist this MT to <mt:var name="label"></a>
             <mt:else>
                 <a href="<mt:var name="manage_url">" target="_new">Manage API setting in <mt:var name="label"></a>
                 <mt:if name="sys_token_id">
-                    <a href="<mt:var name="script_url">?__mode=revoke_handshake&amp;author_id=0&amp;id=<mt:var name="sys_token_id">&amp;forward=list_oauth_providers">Revoke system level handshake</a>
+                    | <a href="<mt:var name="script_url">?__mode=revoke_handshake&amp;author_id=0&amp;id=<mt:var name="sys_token_id">&amp;forward=list_oauth_providers">Revoke system level handshake</a>
                 <mt:else>
-                    <a href="<mt:var name="script_url">?__mode=oauth_handshake&amp;client=<mt:var name="id">&amp;author_id=0&redirect=<mt:var name="script_url">?__mode=list_oauth_providers">Do system level handshake</a>
+                    | <a href="<mt:var name="script_url">?__mode=oauth_handshake&amp;client=<mt:var name="id">&amp;author_id=0&redirect=<mt:var name="script_url">?__mode=list_oauth_providers">Do system level handshake</a>
                 </mt:if>
 
             </mt:unless>
             </p>
             <p>
-                <mt:var name="callback_url">
+                End Point: <mt:var name="callback_url">
             </p>
             <form name="cfg_form" id="cfg_form" method="post" action="<mt:var name="script_url">">
             <input type="hidden" name="__mode" value="save_oauth_consumer_setting" />
