@@ -79,3 +79,18 @@ the plugin's instruction.
  ## this is all.
  ## if the author hasn't yet authorized, MT will automatically do handshake, and 
  ## after handshaked, back to the method again.
+
+=head1 Run with MT4.x
+
+Some of perl modules bundled with MT4.x is too old to run this plugin. here is steps
+to run OAuthFramework plugin with MT4.x.
+
+1) remove these files and directories from your ( MT4_HOME )/extlib directory.
+    * HTTP/
+    * LWP/
+    * LWP.pm
+
+2) ( if you still got errors about LWP::*** or HTTP::***, ) install LWP to you system
+   via CPAN or your system's package manager.
+
+
