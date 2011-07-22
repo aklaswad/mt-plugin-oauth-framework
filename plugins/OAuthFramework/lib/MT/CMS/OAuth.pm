@@ -2,7 +2,7 @@ package MT::CMS::OAuth;
 use strict;
 use warnings;
 use MT::OAuth;
-
+use MT::Util qw( encode_url );
 sub list_oauth_providers {
     my $app = shift;
     if ( MT->VERSION > 5 ) {
@@ -107,9 +107,14 @@ sub revoke_handshake {
         }
     }
     $token->remove();
-    $app->forward(
-        $q->param('forward') || 'list_oauth_tokens',
-        remokedd => $id );
+    if ( my $redirect = $q->param('redirect') ) {
+        $app->redirect($redirect);
+    }
+    else {
+        $app->forward(
+            $q->param('forward') || 'list_oauth_tokens',
+            remokedd => $id );
+    }
 }
 
 sub oauth_handshake {
@@ -118,51 +123,92 @@ sub oauth_handshake {
     my $client_id = $forward_param{client}   || $app->param('client');
     my $client = MT::OAuth->client($client_id)
         or die "Unknown OAuth Client: $client_id";
-    my $res = $client->get_temporary_credentials;
-    return $app->error( 'failed to start OAuth session: ' . $client->errstr )
-        unless $res;
-    my $redirect  = $forward_param{redirect} || $app->param('redirect');
     my $author_id
         = defined $forward_param{author_id} ? $forward_param{author_id}
         : defined $app->param('author_id')  ? $app->param('author_id')
         :                                     $app->user->id
         ;
-    ## FIXME: set cookie expire
-    my $cookie = $app->bake_cookie (
-        -name => 'mt_oauth_' . $client_id . '_credential',
-        -value => {
-            author_id    => $author_id,
-            session      => $forward_param{session},
-            redirect     => $redirect,
-            token        => $res->{token},
-            token_secret => $res->{token_secret},
-        },
-        -path=>'/',
-    );
-    $app->redirect(
-        $res->{redirect_url},
-        UseMeta => 1,
-        -cookie => $cookie
-    );
+
+    if ( $client->protocol_version eq '2_0') {
+        my $redirect  = $forward_param{redirect} || $app->param('redirect');
+        my %state = (
+            client_id => $client_id,
+            author_id => $author_id,
+            redirect  => $redirect,
+        );
+        my $state = join( ';;', ( map { join '::', $_, $state{$_} } keys %state ) );
+        my $uri = $client->authorize_url
+                . "?client_id=" . $client->consumer_key
+                . "&state="     . encode_url( $state )
+                . "&redirect_uri="
+                . encode_url($app->base . $app->uri(mode => 'oauth_verified'))
+                ;
+        $app->redirect( $uri );
+    }
+    else {
+        my $res = $client->get_temporary_credentials;
+        return $app->error( 'failed to start OAuth session: ' . $client->errstr )
+            unless $res;
+        my $redirect  = $forward_param{redirect} || $app->param('redirect');
+        ## FIXME: set cookie expire
+        my $cookie = $app->bake_cookie (
+            -name => 'mt_oauth_' . $client_id . '_credential',
+            -value => {
+                author_id    => $author_id,
+                session      => $forward_param{session},
+                redirect     => $redirect,
+                token        => $res->{token},
+                token_secret => $res->{token_secret},
+            },
+            -path=>'/',
+        );
+        $app->redirect(
+            $res->{redirect_url},
+            UseMeta => 1,
+            -cookie => $cookie
+        );
+     }
 }
 
 sub oauth_verified {
     my $app = shift;
     my $q = $app->param;
     my $client_id = $q->param('client');
-    my %cookie = $q->cookie('mt_oauth_' . $client_id . '_credential');
+    my $redirect;
+    my $author_id;
+    unless ( $client_id ) {
+        ## When using OAuth 2.0, some params are serialized in state parameters.
+        my $state = $q->param('state')
+            or die "Invalid request";
+        my %state = map { split ';;', $_ } split( '::', $state );
+        ( $client_id, $author_id, $redirect ) = @state{qw( client_id author_id redirect )};
+    }
     my $client = MT::OAuth->client($client_id)
         or return $app->error("Unknown client $client_id");
-    my $token = $client->get_access_tokens(
-        request_token        => $cookie{token},
-        request_token_secret => $cookie{token_secret},
-        oauth_token          => $q->param('oauth_token'),
-        oauth_verifier       => $q->param('oauth_verifier'),
-    ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
-    $token->author_id(defined $cookie{author_id} ? $cookie{author_id} : $app->user->id);
+    my $token;
+    my %cookie;
+    if ( '2_0' eq $client->protocol_version ) {
+        $token = $client->get_access_tokens_v2(
+            code     => $q->param('code'),
+            redirect => encode_url($app->base . $app->uri(mode => 'oauth_verified')),
+        ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
+    }
+    else {
+        %cookie = $q->cookie('mt_oauth_' . $client_id . '_credential');
+        $token = $client->get_access_tokens(
+            request_token        => $cookie{token},
+            request_token_secret => $cookie{token_secret},
+            oauth_token          => $q->param('oauth_token'),
+            oauth_verifier       => $q->param('oauth_verifier'),
+        ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
+        $author_id = defined $cookie{author_id} ? $cookie{author_id} : $app->user->id;
+        $redirect  = $cookie{redirect};
+    }
+
+    $token->author_id($author_id);
     $token->provider($client->id);
     $token->save or return $app->error( $token->errstr );
-    if ( my $redirect = $cookie{redirect} ) {
+    if ( $redirect ) {
         return $app->redirect($redirect);
     }
     elsif ( my $sess_id = $cookie{session} ) {

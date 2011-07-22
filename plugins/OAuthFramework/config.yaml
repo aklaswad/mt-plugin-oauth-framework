@@ -1,7 +1,7 @@
 name: OAuth Framework
 author: Akira Sawada
 version: 0.11
-schema_version: 0.11
+schema_version: 0.112
 object_types:
     oauth_token: MT::OAuth::Token
 applications:
@@ -66,3 +66,11 @@ oauth_service_providers:
         authorize_url: http://foursquare.com/oauth/authorize
         author_app_manage_url: http://foursquare.com/settings
         protocol_version: 1_0
+    facebook:
+        label: Facebook
+        regist_url: https://developers.facebook.com/apps/
+        manage_url: https://developers.facebook.com/apps/
+        access_token_url: https://graph.facebook.com/oauth/access_token
+        authorize_url: https://www.facebook.com/dialog/oauth
+        author_app_manage_url: http://www.facebook.com/
+        protocol_version: 2_0

@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use MT;
 use Net::OAuth;
+
 $Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0A;
 
 sub client {
@@ -40,6 +41,9 @@ sub clients {
 }
 
 package MT::OAuth::Client;
+use strict;
+use warnings;
+use MT::Util qw( encode_url );
 use base qw( Class::Accessor::Fast MT::ErrorHandler );
 
 __PACKAGE__->mk_accessors(qw(
@@ -181,6 +185,34 @@ sub get_access_tokens {
         provider => $self->id,
         token    => $response->token,
         secret   => $response->token_secret,
+    });
+    return $token;
+}
+
+sub get_access_tokens_v2 {
+    my $self = shift;
+    my ( %param ) = @_;
+    return unless $self->registered;
+    my $ua = MT->new_ua;
+    my %req_params = (
+        client_id     => $self->consumer_key,
+        client_secret => $self->consumer_secret,
+        redirect_uri  => $param{redirect},
+        code          => $param{code},
+    );
+    my $uri = $self->access_token_url . '?';
+    $uri .= join( '&', ( map { $_ . '=' . $req_params{$_} } keys %req_params ) );
+    my $http_req = HTTP::Request->new('GET', $uri);
+    my $res = $ua->request($http_req);
+    die 'Failed to get OAuth Tokens: ' . $res->status_line
+        unless $res->is_success;
+    my $content = $res->content;
+    my %content = map { split '=', $_ } split( '&', $content );
+    $content{access_token} or die "Token not found";
+    my $token = MT->model('oauth_token')->new;
+    $token->set_values({
+        provider => $self->id,
+        token    => $content{access_token},
     });
     return $token;
 }
