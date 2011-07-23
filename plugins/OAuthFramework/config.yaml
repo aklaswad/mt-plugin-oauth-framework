@@ -38,8 +38,12 @@ applications:
             list_oauth_tokens: $OAuthFramework::MT::CMS::OAuth::list_oauth_tokens
             revoke_handshake: $OAuthFramework::MT::CMS::OAuth::revoke_handshake
             oauth_handshake: $OAuthFramework::MT::CMS::OAuth::oauth_handshake
-            oauth_verified: $OAuthFramework::MT::CMS::OAuth::oauth_verified
-
+            oauth_verified:
+                code: $OAuthFramework::MT::CMS::OAuth::oauth_verified
+                requires_login: 0
+            oauth_login:
+                code: $OAuthFramework::MT::CMS::OAuth::oauth_login
+                requires_login: 0
 oauth_service_providers:
     typepad:
         label: TypePad

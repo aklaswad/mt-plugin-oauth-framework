@@ -18,7 +18,7 @@ sub fetch_userinfo_google {
     my $user = decode_json( $content );
     return {
         name        => $user->{id},
-        nick        => $user->{name},
+        nickname    => $user->{name},
         email       => $user->{email},
         url         => $user->{link},
         userpic_url => $user->{picture},
@@ -39,7 +39,7 @@ sub fetch_userinfo_facebook {
     my $user = decode_json( $content );
     return {
         name        => $user->{id},
-        nick        => $user->{name},
+        nickname    => $user->{name},
         email       => $user->{email},
         url         => $user->{link},
         userpic_url => $user->{picture},
@@ -66,7 +66,7 @@ sub fetch_userinfo_twitter {
     my $user = decode_json( $content );
     return {
         name        => $user->{screen_name},
-        nick        => $user->{name},
+        nickname    => $user->{name},
         ## TBD: No Email in this endpoint. Where?
         #email       => $user->{email},
         url         => $user->{url},

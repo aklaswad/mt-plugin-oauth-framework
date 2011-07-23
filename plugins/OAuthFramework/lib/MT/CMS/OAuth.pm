@@ -2,7 +2,7 @@ package MT::CMS::OAuth;
 use strict;
 use warnings;
 use MT::OAuth;
-use MT::Util qw( encode_url );
+use MT::Util qw( encode_url ts2epoch );
 
 sub list_oauth_providers {
     my $app = shift;
@@ -118,6 +118,12 @@ sub revoke_handshake {
     }
 }
 
+sub oauth_login {
+    my $app = shift;
+    my $login_blog_id = $app->param('blog_id') || 'global';
+    oauth_handshake( $app, login => $login_blog_id, @_ );
+}
+
 sub oauth_handshake {
     my $app = shift;
     my ( %forward_param ) = @_;
@@ -127,7 +133,8 @@ sub oauth_handshake {
     my $author_id
         = defined $forward_param{author_id} ? $forward_param{author_id}
         : defined $app->param('author_id')  ? $app->param('author_id')
-        :                                     $app->user->id
+        : $app->user                        ? $app->user->id
+        :                                     undef
         ;
 
     my $login = defined $forward_param{login} ? $forward_param{login} : $app->param('login');
@@ -190,7 +197,11 @@ sub oauth_verified {
         ## When using OAuth 2.0, some params are serialized in state parameters.
         my $state = $q->param('state')
             or die "Invalid request";
-        my %state = map { split ' ', $_ } split( '::', $state );
+        my %state;
+        for ( split ' ', $state ) {
+            my ( $k, $v ) = split '::', $_;
+            $state{$k} = $v;
+        }
         ( $client_id, $author_id, $redirect, $login )
             = @state{qw( client_id author_id redirect login )};
     }
@@ -220,7 +231,11 @@ sub oauth_verified {
 
     ## OK, we got access token now. so what to do?
     if ( $login ) {
-        $app->login_with_token( $token );
+        my $blog;
+        if ( $login ne 'global' ) {
+            $blog = MT->model('blog')->load($login);
+        }
+        login_with_token( $app, $client, $token, $blog );
     }
     else {
         MT->model('oauth_token')->remove({
@@ -234,6 +249,9 @@ sub oauth_verified {
 
     ## Do redirect.
     if ( $redirect ) {
+        if ( $login ) {
+            $redirect .= '#_login';
+        }
         return $app->redirect($redirect);
     }
     elsif ( my $sess_id = $cookie{session} ) {
@@ -249,6 +267,50 @@ sub oauth_verified {
         );
     }
     return $app->return_to_dashboard;
+}
+
+sub login_with_token {
+    my $app = shift;
+    my ( $client, $token, $blog ) = @_;
+    my $user = $client->user_info($token);
+    my $auth_type = 'oauth.' . $client->id;
+    my $INTERVAL = 60 * 60 * 24 * 7;
+    my $cmntr = MT->model('author')->load(
+        {   name      => $user->{name},
+            type      => MT->model('author')->COMMENTER(),
+            auth_type => $auth_type,
+        }
+    );
+
+    if ($cmntr) {
+        unless (
+            (   $cmntr->modified_on
+                && ( ts2epoch( $blog, $cmntr->modified_on )
+                    > time - $INTERVAL )
+            )
+            || ($cmntr->created_on
+                && ( ts2epoch( $blog, $cmntr->created_on )
+                    > time - $INTERVAL )
+            )
+            )
+        {
+            # TODO: update nickname and email
+            # $class->set_commenter_properties( $cmntr, $vident );
+            $cmntr->save or return 0;
+        }
+    }
+    else {
+        $cmntr = $app->make_commenter(
+            name        => $user->{name},
+            email       => $user->{email},
+            nickname    => $user->{nickname},
+            url         => $user->{url},
+            auth_type   => $auth_type,
+        );
+    }
+    return unless $cmntr;
+    $cmntr->save;
+    my $session = $app->make_commenter_session($cmntr);
 }
 
 1;
