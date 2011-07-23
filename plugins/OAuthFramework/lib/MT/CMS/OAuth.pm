@@ -223,6 +223,10 @@ sub oauth_verified {
         $app->login_with_token( $token );
     }
     else {
+        MT->model('oauth_token')->remove({
+            author_id => $author_id,
+            provider  => $client->id,
+        });
         $token->author_id($author_id);
         $token->provider($client->id);
         $token->save or return $app->error( $token->errstr );

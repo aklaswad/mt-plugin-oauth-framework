@@ -53,7 +53,7 @@ __PACKAGE__->mk_accessors(qw(
     manage_url    consumer_key          consumer_secret
     update        request_token_url     access_token_url
     authorize_url author_app_manage_url protocol_version
-    user_info_url scope
+    user_info_url fetch_user_info       scope
 ));
 
 sub new {
@@ -231,6 +231,19 @@ sub get_access_tokens_v2 {
         token    => $content{access_token},
     });
     return $token;
+}
+
+sub user_info {
+    my $self = shift;
+    my $token = shift
+        or die "Token is required";
+    my $fetcher = $self->fetch_user_info
+        or die "This OAuth provider doesn't support user info";
+    if ( 'CODE' ne ref $fetcher ) {
+        $fetcher = MT->handler_to_coderef($fetcher);
+    }
+    my $user = $fetcher->($self, $token);
+    return $user;
 }
 
 sub has_token {

@@ -39,6 +39,7 @@ applications:
             revoke_handshake: $OAuthFramework::MT::CMS::OAuth::revoke_handshake
             oauth_handshake: $OAuthFramework::MT::CMS::OAuth::oauth_handshake
             oauth_verified: $OAuthFramework::MT::CMS::OAuth::oauth_verified
+
 oauth_service_providers:
     typepad:
         label: TypePad
@@ -57,6 +58,7 @@ oauth_service_providers:
         access_token_url: https://api.twitter.com/oauth/access_token
         authorize_url: https://api.twitter.com/oauth/authorize
         author_app_manage_url: http://twitter.com/settings/connections
+        fetch_user_info: $OauthFramework::MT::OAuth::Util::fetch_userinfo_twitter
     foursquare:
         label: foursquare
         regist_url: http://foursquare.com/oauth/register
@@ -74,6 +76,9 @@ oauth_service_providers:
         authorize_url: https://www.facebook.com/dialog/oauth
         author_app_manage_url: http://www.facebook.com/
         protocol_version: 2_0
+        fetch_user_info: $OauthFramework::MT::OAuth::Util::fetch_userinfo_facebook
+        scope:
+            email: 1
     google:
         label: Google
         authorize_url: https://accounts.google.com/o/oauth2/auth
@@ -83,3 +88,4 @@ oauth_service_providers:
         scope:
             "https://www.googleapis.com/auth/userinfo.email": 1
             "https://www.googleapis.com/auth/userinfo.profile": 1
+        fetch_user_info: $OauthFramework::MT::OAuth::Util::fetch_userinfo_google
