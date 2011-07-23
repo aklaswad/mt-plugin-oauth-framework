@@ -45,12 +45,15 @@ use strict;
 use warnings;
 use MT::Util qw( encode_url );
 use base qw( Class::Accessor::Fast MT::ErrorHandler );
+use HTTP::Request::Common qw(POST);
+use JSON;
 
 __PACKAGE__->mk_accessors(qw(
     id            label                 regist_url
     manage_url    consumer_key          consumer_secret
     update        request_token_url     access_token_url
     authorize_url author_app_manage_url protocol_version
+    user_info_url scope
 ));
 
 sub new {
@@ -195,19 +198,32 @@ sub get_access_tokens_v2 {
     return unless $self->registered;
     my $ua = MT->new_ua;
     my %req_params = (
+        grant_type    => 'authorization_code',
         client_id     => $self->consumer_key,
         client_secret => $self->consumer_secret,
         redirect_uri  => $param{redirect},
         code          => $param{code},
     );
-    my $uri = $self->access_token_url . '?';
-    $uri .= join( '&', ( map { $_ . '=' . $req_params{$_} } keys %req_params ) );
-    my $http_req = HTTP::Request->new('GET', $uri);
+    #my $uri = $self->access_token_url . '?';
+    #$uri .= join( '&', ( map { $_ . '=' . $req_params{$_} } keys %req_params ) );
+    #my $http_req = HTTP::Request->new('GET', $uri);
+
+    my $http_req = POST( $self->access_token_url, [ %req_params ] );
+    #$http_req->content_type( 'application/x-www-form-urlencoded' );
+
     my $res = $ua->request($http_req);
     die 'Failed to get OAuth Tokens: ' . $res->status_line
         unless $res->is_success;
     my $content = $res->content;
-    my %content = map { split '=', $_ } split( '&', $content );
+    my %content;
+    if ( $content =~ /\{/ ) {
+        # it's JSON, maybe...
+        %content = %{ decode_json( $content ) };
+    }
+    else {
+        # it's form-urlencoded, maybe?
+        %content = map { split '=', $_ } split( '&', $content );
+    }
     $content{access_token} or die "Token not found";
     my $token = MT->model('oauth_token')->new;
     $token->set_values({

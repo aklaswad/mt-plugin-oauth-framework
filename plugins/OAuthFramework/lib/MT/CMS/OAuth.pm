@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use MT::OAuth;
 use MT::Util qw( encode_url );
+
 sub list_oauth_providers {
     my $app = shift;
     if ( MT->VERSION > 5 ) {
@@ -129,20 +130,29 @@ sub oauth_handshake {
         :                                     $app->user->id
         ;
 
+    my $login = defined $forward_param{login} ? $forward_param{login} : $app->param('login');
     if ( $client->protocol_version eq '2_0') {
         my $redirect  = $forward_param{redirect} || $app->param('redirect');
         my %state = (
             client_id => $client_id,
             author_id => $author_id,
             redirect  => $redirect,
+            login     => $login,
         );
-        my $state = join( ';;', ( map { join '::', $_, $state{$_} } keys %state ) );
+        my $state = join( ' ', ( map { join '::', $_, $state{$_} } keys %state ) );
+        my $our_endpoint = $app->base . $app->uri(mode => 'oauth_verified');
         my $uri = $client->authorize_url
-                . "?client_id=" . $client->consumer_key
+                . "?response_type=code"
+                . "&client_id=" . $client->consumer_key
                 . "&state="     . encode_url( $state )
                 . "&redirect_uri="
-                . encode_url($app->base . $app->uri(mode => 'oauth_verified'))
+                . encode_url( $our_endpoint )
                 ;
+        my $scope_str;
+        if ( my $scope = $client->scope ) {
+            delete $scope->{plugin};
+            $uri .= '&scope=' . join('+', ( map { encode_url($_) } keys %$scope ) );
+        }
         $app->redirect( $uri );
     }
     else {
@@ -159,6 +169,7 @@ sub oauth_handshake {
                 redirect     => $redirect,
                 token        => $res->{token},
                 token_secret => $res->{token_secret},
+                login        => $login,
             },
             -path=>'/',
         );
@@ -167,30 +178,31 @@ sub oauth_handshake {
             UseMeta => 1,
             -cookie => $cookie
         );
-     }
+    }
 }
 
 sub oauth_verified {
     my $app = shift;
     my $q = $app->param;
     my $client_id = $q->param('client');
-    my $redirect;
-    my $author_id;
-    unless ( $client_id ) {
+    my ( $redirect, $author_id, $login );
+    unless ($client_id) {
         ## When using OAuth 2.0, some params are serialized in state parameters.
         my $state = $q->param('state')
             or die "Invalid request";
-        my %state = map { split ';;', $_ } split( '::', $state );
-        ( $client_id, $author_id, $redirect ) = @state{qw( client_id author_id redirect )};
+        my %state = map { split ' ', $_ } split( '::', $state );
+        ( $client_id, $author_id, $redirect, $login )
+            = @state{qw( client_id author_id redirect login )};
     }
     my $client = MT::OAuth->client($client_id)
         or return $app->error("Unknown client $client_id");
     my $token;
     my %cookie;
     if ( '2_0' eq $client->protocol_version ) {
+        my $our_endpoint = $app->base . $app->uri(mode => 'oauth_verified');
         $token = $client->get_access_tokens_v2(
             code     => $q->param('code'),
-            redirect => encode_url($app->base . $app->uri(mode => 'oauth_verified')),
+            redirect => $our_endpoint,
         ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
     }
     else {
@@ -203,11 +215,20 @@ sub oauth_verified {
         ) or $app->error( 'Failed to get oAuth token: ' . $client->errstr );
         $author_id = defined $cookie{author_id} ? $cookie{author_id} : $app->user->id;
         $redirect  = $cookie{redirect};
+        $login     = $cookie{login};
     }
 
-    $token->author_id($author_id);
-    $token->provider($client->id);
-    $token->save or return $app->error( $token->errstr );
+    ## OK, we got access token now. so what to do?
+    if ( $login ) {
+        $app->login_with_token( $token );
+    }
+    else {
+        $token->author_id($author_id);
+        $token->provider($client->id);
+        $token->save or return $app->error( $token->errstr );
+    }
+
+    ## Do redirect.
     if ( $redirect ) {
         return $app->redirect($redirect);
     }

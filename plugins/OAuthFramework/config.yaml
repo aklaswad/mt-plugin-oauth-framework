@@ -74,3 +74,12 @@ oauth_service_providers:
         authorize_url: https://www.facebook.com/dialog/oauth
         author_app_manage_url: http://www.facebook.com/
         protocol_version: 2_0
+    google:
+        label: Google
+        authorize_url: https://accounts.google.com/o/oauth2/auth
+        access_token_url: https://accounts.google.com/o/oauth2/token
+        user_info_url: https://www.googleapis.com/oauth2/v1/userinfo
+        protocol_version: 2_0
+        scope:
+            "https://www.googleapis.com/auth/userinfo.email": 1
+            "https://www.googleapis.com/auth/userinfo.profile": 1
