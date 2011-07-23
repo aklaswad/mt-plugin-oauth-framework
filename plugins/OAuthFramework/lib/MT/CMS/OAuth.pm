@@ -2,6 +2,7 @@ package MT::CMS::OAuth;
 use strict;
 use warnings;
 use MT::OAuth;
+use MT::Auth::OpenID;
 use MT::Util qw( encode_url ts2epoch );
 
 sub list_oauth_providers {
@@ -307,6 +308,11 @@ sub login_with_token {
             url         => $user->{url},
             auth_type   => $auth_type,
         );
+    }
+
+    if ( my $userpic_url = $user->{userpic_url} ) {
+        my $asset = MT::Auth::OpenID::_asset_from_url($userpic_url);
+        $cmntr->userpic_asset_id( $asset->id );
     }
     return unless $cmntr;
     $cmntr->save;
