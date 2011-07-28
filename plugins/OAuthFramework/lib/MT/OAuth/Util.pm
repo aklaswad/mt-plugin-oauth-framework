@@ -25,6 +25,26 @@ sub fetch_userinfo_google {
     }
 }
 
+sub fetch_userinfo_github {
+    my ( $client, $token ) = @_;
+    my $info_url = 'https://api.github.com/user?access_token=';
+    $info_url .= $token->token;
+    my $ua = MT->new_ua;
+    my $http_req = HTTP::Request->new('GET', $info_url);
+    my $res = $ua->request($http_req);
+    die 'Failed to get OAuth Tokens: ' . $res->status_line
+        unless $res->is_success;
+    my $content = $res->content;
+    my $user = decode_json( $content );
+    return {
+        name        => $user->{id},
+        nickname    => $user->{name},
+        email       => $user->{email},
+        url         => $user->{link},
+        userpic_url => $user->{picture},
+    }
+}
+
 sub fetch_userinfo_facebook {
     my ( $client, $token ) = @_;
     my $info_url = 'https://graph.facebook.com/me?fields=id,name,email,link,picture&access_token=';
@@ -32,7 +52,6 @@ sub fetch_userinfo_facebook {
     my $ua = MT->new_ua;
     my $http_req = HTTP::Request->new('GET', $info_url);
     my $res = $ua->request($http_req);
-    use Data::Dumper; print STDERR Dumper $res;
     die 'Failed to get OAuth Tokens: ' . $res->status_line
         unless $res->is_success;
     my $content = $res->content;

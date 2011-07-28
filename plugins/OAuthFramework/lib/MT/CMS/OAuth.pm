@@ -139,6 +139,10 @@ sub oauth_handshake {
         ;
 
     my $login = defined $forward_param{login} ? $forward_param{login} : $app->param('login');
+    my $our_endpoint = $forward_param{our_endpoint};
+    $our_endpoint ||= $app->base
+        . $app->uri( mode => 'oauth_verified', args => { client => $client->id });
+    $client->callback_url( $our_endpoint );
     if ( $client->protocol_version eq '2_0') {
         my $redirect  = $forward_param{redirect} || $app->param('redirect');
         my %state = (
@@ -148,7 +152,6 @@ sub oauth_handshake {
             login     => $login,
         );
         my $state = join( ' ', ( map { join '::', $_, $state{$_} } keys %state ) );
-        my $our_endpoint = $app->base . $app->uri(mode => 'oauth_verified');
         my $uri = $client->authorize_url
                 . "?response_type=code"
                 . "&client_id=" . $client->consumer_key
@@ -191,6 +194,7 @@ sub oauth_handshake {
 
 sub oauth_verified {
     my $app = shift;
+    my %param = @_;
     my $q = $app->param;
     my $client_id = $q->param('client');
     my ( $redirect, $author_id, $login );
@@ -206,12 +210,15 @@ sub oauth_verified {
         ( $client_id, $author_id, $redirect, $login )
             = @state{qw( client_id author_id redirect login )};
     }
+
     my $client = MT::OAuth->client($client_id)
         or return $app->error("Unknown client $client_id");
+    my $our_endpoint = $param{our_endpoint};
+    $our_endpoint ||= $app->base . $app->uri(mode => 'oauth_verified', args => { client => $client->id });
+    $client->callback_url( $our_endpoint );
     my $token;
     my %cookie;
     if ( '2_0' eq $client->protocol_version ) {
-        my $our_endpoint = $app->base . $app->uri(mode => 'oauth_verified');
         $token = $client->get_access_tokens_v2(
             code     => $q->param('code'),
             redirect => $our_endpoint,
@@ -308,14 +315,14 @@ sub login_with_token {
             url         => $user->{url},
             auth_type   => $auth_type,
         );
+        if ( my $userpic_url = $user->{userpic_url} ) {
+            my $asset = MT::Auth::OpenID::_asset_from_url($userpic_url);
+            $cmntr->userpic_asset_id( $asset->id );
+        }
+        $cmntr->save;
     }
 
-    if ( my $userpic_url = $user->{userpic_url} ) {
-        my $asset = MT::Auth::OpenID::_asset_from_url($userpic_url);
-        $cmntr->userpic_asset_id( $asset->id );
-    }
     return unless $cmntr;
-    $cmntr->save;
     my $session = $app->make_commenter_session($cmntr);
 }
 

@@ -14,12 +14,12 @@ sub client {
     ## multi entry about the same provider has found, use newest one.
     ## this could help the old plugin from change somthing by provider side.
     my $reg = MT->registry('oauth_service_providers', $client_id)
-        or die "Failed to load OAuth client $client_id";
+        or die "Failed tos load OAuth client $client_id";
 
     my $class = $reg->{class};
     if ( $class ) {
         eval "require $class"
-            or die "Failed to load OAuth client $client_id: $@";
+            or die "Failedss to load OAuth client $client_id: $@";
     }
     else {
         $class = "MT::OAuth::Client::$client_id";
@@ -54,6 +54,7 @@ __PACKAGE__->mk_accessors(qw(
     update        request_token_url     access_token_url
     authorize_url author_app_manage_url protocol_version
     user_info_url fetch_user_info       scope
+    callback_url
 ));
 
 sub new {
@@ -105,12 +106,6 @@ sub save_consumer_info {
     1;
 }
 
-sub callback_url {
-    my $self = shift;
-    ## FIXME
-    MT->config->CGIPath . 'mt.cgi?__mode=oauth_verified&client=' . $self->id;
-}
-
 sub oauth_request {
     my $self = shift;
     my ( $request_to, %param ) = @_;
@@ -120,7 +115,6 @@ sub oauth_request {
         signature_method => 'HMAC-SHA1',
         timestamp        => time(),
         callback         => $self->callback_url,
-        ## FIXME: what is the nonce?
         nonce            => substr(MT->app->make_magic_token, 0, 8),
         %param,
     );

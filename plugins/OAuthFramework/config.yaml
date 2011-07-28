@@ -93,3 +93,11 @@ oauth_service_providers:
             "https://www.googleapis.com/auth/userinfo.email": 1
             "https://www.googleapis.com/auth/userinfo.profile": 1
         fetch_user_info: $OauthFramework::MT::OAuth::Util::fetch_userinfo_google
+    #github:
+    #    label: GitHub
+    #    authorize_url: https://github.com/login/oauth/authorize
+    #    access_token_url: https://github.com/login/oauth/access_token
+    #    protocol_version: 2_0
+    #    scope:
+    #        user: 1
+    #    fetch_user_info: $OauthFramework::MT::OAuth::Util::fetch_userinfo_google
